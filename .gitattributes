@@ -1,1 +1,2 @@
 *.zip filter=lfs diff=lfs merge=lfs -text
+bdd100k_drivable_labels_trainval.zip filter=lfs diff=lfs merge=lfs -text
