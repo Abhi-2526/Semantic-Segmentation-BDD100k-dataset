@@ -18,7 +18,9 @@ class DrivableDataset(Dataset):
         image = np.array(resize_image) / 127.5 - 1
         image_tensor = torch.from_numpy(image)
 
-        label = self.images[item].replace('/images', '/labels').replace('.png', '_drivable_id.png')
+        label_path = self.images[item].replace('images/100k', 'labels/drivable/masks').replace('.jpg', '.png')
+        label = cv2.imread(label_path)[:, :, 0]
+        label = cv2.resize(label, (512, 512))
         mask = np.zeros_like(resize_image)
         mask[:, :, 0] = (np.array(label) == 0).astype(np.uint8)
         mask[:, :, 1] = (np.array(label) == 1).astype(np.uint8)

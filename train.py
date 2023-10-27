@@ -14,9 +14,9 @@ from models import Unet
 from metric import compute_miou
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-data_dir = "root_dir/"
-train_images = glob.glob(data_dir + "/drivable_maps/images/train/*.png")
-val_images = glob.glob(data_dir + "/drivable_maps/images/val/*.png")
+data_dir = "bdd100k/images/100k/"
+train_images = glob.glob(data_dir + "train/*.jpg")
+val_images = glob.glob(data_dir + "val/*.jpg")
 
 trainset = DrivableDataset(train_images)
 valset = DrivableDataset(val_images)
