@@ -1,3 +1,4 @@
+#!/usr/bin/env python3.11
 import os
 import glob
 import json

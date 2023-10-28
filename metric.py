@@ -7,6 +7,8 @@ def calculate_iou(predicted_mask, ground_truth_mask):
     return iou
 
 def compute_miou(predicted_masks, ground_truth_masks):
+    predicted_masks=predicted_masks.cpu().detach().numpy()
+    ground_truth_masks=ground_truth_masks.cpu().detach().numpy()
     batch_size = len(predicted_masks)
     num_classes = len(predicted_masks[0])
     iou_values = []
