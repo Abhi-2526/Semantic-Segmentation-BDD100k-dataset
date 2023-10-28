@@ -2,6 +2,7 @@
 import os
 import glob
 import json
+import datetime
 
 import cv2
 import numpy as np 
@@ -14,6 +15,17 @@ from preprocess import DrivableDataset
 from models import Unet
 from metric import compute_miou
 
+def load_checkpoint(checkpoint_path, device, model, optimizer):
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(checkpoint['model'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
+    curr_epoch = checkpoint['epoch']
+    return model, optimizer, curr_epoch
+
+date_time = datetime.datetime.now()
+formatted_datetime = date_time.strftime("%Y-%m-%d_%H-%M-%S")
+os.makedirs(formatted_datetime, exist_ok=True)
+is_pretrained_available = True
 device = "cuda" if torch.cuda.is_available() else "cpu"
 data_dir = "bdd100k/images/100k/"
 train_images = glob.glob(data_dir + "train/*.jpg")
@@ -29,11 +41,15 @@ model.to(device)
 
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
+curr_epoch=0
+
+if is_pretrained_available:
+    model, optimizer, curr_epoch = load_checkpoint("best_model.pth", device, model, optimizer)
 
 num_epochs = 10
 train_losses, val_losses = [], []
 min_val_loss = np.Inf
-for epoch in range(num_epochs):
+for epoch in range(curr_epoch, num_epochs):
   # training loop
     model.train()
     running_loss = 0.0
@@ -74,10 +90,11 @@ for epoch in range(num_epochs):
     if val_running_loss/len(valloader) < min_val_loss:
         min_val_loss = val_running_loss/len(valloader)
         checkpoint = {"model": model.state_dict(), "optimizer":optimizer.state_dict(), "epoch":epoch}
-        torch.save("best_model.pth", checkpoint)
+        torch.save(formatted_datetime + "/best_model.pth", checkpoint)
+        print("Saving Checkpoint to", formatted_datetime, "/best_model.pth")
     
     log_dict = {'train_iou': train_iou, 'val_iou': val_iou, 'epoch':epoch, 'train_loss':running_loss/len(trainloader), 'val_loss':val_running_loss/len(valloader)}
-    with open("log.json") as f:
+    with open(formatted_datetime + "log.json", 'w+') as f:
         json.dump(f, log_dict)
 
     print(f"Epoch {epoch+1}/{num_epochs}, Train Loss: {running_loss/len(trainloader)}, Val Loss: {val_running_loss/len(valloader)}")
