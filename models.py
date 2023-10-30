@@ -32,14 +32,19 @@ class conv_block(nn.Module):
     Here the number of filters doubles and the height and width half after every block.
 """
 class encoder_block(nn.Module):
-    def __init__(self, in_c, out_c):
+    def __init__(self, in_c, out_c, dropout=False):
         super().__init__()
 
         self.conv = conv_block(in_c, out_c)
         self.pool = nn.MaxPool2d((2, 2))
+        self.use_dropout = dropout
+        if self.use_dropout:
+            self.dropout = nn.Dropout(0.3)
 
     def forward(self, inputs):
         x = self.conv(inputs)
+        if self.use_dropout:
+            x = self.dropout(x)
         p = self.pool(x)
 
         return x, p
@@ -50,16 +55,21 @@ class encoder_block(nn.Module):
     Here the number filters decreases by half and the height and width doubles.
 """
 class decoder_block(nn.Module):
-    def __init__(self, in_c, out_c):
+    def __init__(self, in_c, out_c, dropout=False):
         super().__init__()
 
         self.up = nn.ConvTranspose2d(in_c, out_c, kernel_size=2, stride=2, padding=0)
-        self.conv = conv_block(out_c+out_c, out_c)
+        self.conv = conv_block(out_c + out_c, out_c)
+        self.use_dropout = dropout
+        if self.use_dropout:
+            self.dropout = nn.Dropout(0.3)
 
     def forward(self, inputs, skip):
         x = self.up(inputs)
         x = torch.cat([x, skip], axis=1)
         x = self.conv(x)
+        if self.use_dropout:
+            x = self.dropout(x)
 
         return x
 
@@ -69,22 +79,22 @@ class Unet(nn.Module):
         super().__init__()
 
         """ Encoder """
-        self.e1 = encoder_block(3, 64)
-        self.e2 = encoder_block(64, 128)
-        self.e3 = encoder_block(128, 256)
-        self.e4 = encoder_block(256, 512)
+        self.e1 = encoder_block(3, 32)
+        self.e2 = encoder_block(32, 64)
+        self.e3 = encoder_block(64, 128, dropout=True)
+        self.e4 = encoder_block(128, 256)
 
         """ Bottleneck """
-        self.b = conv_block(512, 1024)
+        self.b = conv_block(256, 512)
 
         """ Decoder """
-        self.d1 = decoder_block(1024, 512)
-        self.d2 = decoder_block(512, 256)
-        self.d3 = decoder_block(256, 128)
-        self.d4 = decoder_block(128, 64)
+        self.d1 = decoder_block(512, 256)
+        self.d2 = decoder_block(256, 128)
+        self.d3 = decoder_block(128, 64, dropout=True)
+        self.d4 = decoder_block(64, 32)
 
         """ Classifier """
-        self.outputs = nn.Conv2d(64, 3, kernel_size=1, padding=0)
+        self.outputs = nn.Conv2d(32, 3, kernel_size=1, padding=0)
 
     def forward(self, inputs):
         """ Encoder """
